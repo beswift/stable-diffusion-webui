@@ -42,11 +42,10 @@ def zoom_at2(img, rot, x, y, zoom):
 
 
 def pasteprop(img, props, propfolder):
-
     img2 = img.convert('RGBA')
 
     for propname in props:
-        #prop_name | prop filename | x pos | y pos | scale | rotation
+        # prop_name | prop filename | x pos | y pos | scale | rotation
         propfilename = os.path.join(propfolder.strip(), str(props[propname][1]).strip())
         x = int(props[propname][2])
         y = int(props[propname][3])
@@ -89,23 +88,23 @@ def rendertext(img, textblocks):
             forecolor = eval(textblocks[textname][7].strip())
         except:
             forecolor = textblocks[textname][7].strip()
-        font_name = str(textblocks[textname][8]).strip()
+        font_name = str(textblocks[textname][8]).strip().lower()
         # Auto size the text.
         for fs in range(70):
             myfont = ImageFont.truetype(font_name, fs)
-            txtsize = d1.multiline_textbbox((0, 0), textprompt, font=myfont)
+            txtsize = d1.multiline_textbbox((0, 0), textprompt, font=myfont, align='center')
             if txtsize[2] - txtsize[0] > (w - pad * 2) or txtsize[3] - txtsize[1] > (h - pad * 2):
                 font_size = fs - 1
                 break
 
         myfont = ImageFont.truetype(font_name, font_size)
-        #print(f"size:{font_size} loc:{x}, {y} size:{w}, {h}")
+        # print(f"size:{font_size} loc:{x}, {y} size:{w}, {h}")
 
-        #txtsize = d1.multiline_textbbox((0, 0), textprompt, font=myfont)
-        #print(f"txtsize:{txtsize}")
+        txtsize = d1.multiline_textbbox((0, 0), textprompt, font=myfont, align='center')
+        # print(f"txtsize:{txtsize}")
 
         d1.rounded_rectangle((x, y, x + w, y + h), radius=pad, fill=backcolor)
-        d1.multiline_text((x + pad, y + pad), textprompt, fill=forecolor, font=myfont, align='center')
+        d1.multiline_text((x + pad, y + pad + (h - txtsize[3])/2), textprompt, fill=forecolor, font=myfont, align='center')
 
     return img
 
@@ -122,8 +121,26 @@ def addnoise(img, percent):
         pos = (x2, y2, x2 + s2, y2 + s2)
         draw.ellipse(pos, fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)),
                      outline=(0, 0, 0))
-
     return img
+
+
+def morph(img1, img2, count):
+    """
+    count=4
+    img1:0
+            0.2 (1/5)
+            0.4 (2/5)
+            0.6 (3/5)
+            0.8 (4/5)
+    img2:1
+    """
+    arr1 = np.array(img1)
+    diff = (np.array(img2).astype('int16') - arr1.astype('int16'))
+    img_list = []
+    for x in range(1, count+1):
+        img_list.append(Image.fromarray((arr1 + diff * (x / (count+1))).astype('uint8'), 'RGB'))
+
+    return img_list
 
 
 def make_gif(filepath, filename, fps, create_vid, create_bat):
@@ -229,8 +246,10 @@ class Script(scripts.Script):
         with gr.Row():
             denoising_strength = gr.Slider(label="Denoising Strength (overrides img2img slider)", minimum=0.0,
                                            maximum=1.0, step=0.01, value=0.40)
+
         with gr.Row():
-            seed_march = gr.Checkbox(label="Seed March", value=False)
+            seed_march = gr.Checkbox(label="Seed_March", value=False)
+            smoothing = gr.Slider(label="Smoothing_Frames", minimum=0, maximum=32, step=1, value=0)
 
         with gr.Row():
             zoom_factor = gr.Textbox(label="Zoom Factor (scale/s)", lines=1, value="1.0")
@@ -252,7 +271,6 @@ class Script(scripts.Script):
             "time_s | transform | zoom | x_shift | y_shift | rotation<br>"
             "time_s | seed | new_seed_int<br>"
             "time_s | denoise | denoise_value<br>"
-            "time_s | prop | prop_filename | x_pos | y_pos | scale | rotation<br>"
             "time_s | set_text | textblock_name | text_prompt | x | y | w | h | fore_color | back_color | font_name<br>"
             "time_s | clear_text | textblock_name<br>"
             "time_s | prop | prop_name | prop_filename | x pos | y pos | scale | rotation<br>"
@@ -265,10 +283,10 @@ class Script(scripts.Script):
 
         prompts = gr.Textbox(label="Keyframes:", lines=5, value="")
         return [i1, i2, i3, i4, i5, i6, totaltime, fps, vid_gif, vid_mp4, vid_webm, zoom_factor, tmpl_pos, tmpl_neg,
-                prompts, denoising_strength, x_shift, y_shift, rotation, propfolder, seed_march]
+                prompts, denoising_strength, x_shift, y_shift, rotation, propfolder, seed_march, smoothing]
 
     def run(self, p, i1, i2, i3, i4, i5, i6, totaltime, fps, vid_gif, vid_mp4, vid_webm, zoom_factor, tmpl_pos,
-            tmpl_neg, prompts, denoising_strength, x_shift, y_shift, rotation, propfolder, seed_march):
+            tmpl_neg, prompts, denoising_strength, x_shift, y_shift, rotation, propfolder, seed_march, smoothing):
 
         # Fix variable types, i.e. text boxes giving strings.
         totaltime = float(totaltime)
@@ -280,6 +298,9 @@ class Script(scripts.Script):
         apply_colour_corrections = True
 
         frame_count = int(fps * totaltime)
+
+        # Theoretical frame rate, may lead to diff video length.
+        final_fps = fps + fps * smoothing
 
         outfilename = time.strftime('%Y%m%d%H%M%S')
         outpath = os.path.join(p.outpath_samples, outfilename)
@@ -300,7 +321,7 @@ class Script(scripts.Script):
                      'zoom': np.nan,
                      'rotation': np.nan}
 
-        df = pd.DataFrame(variables, index=range(frame_count+1))
+        df = pd.DataFrame(variables, index=range(frame_count + 1))
         # Preload the dataframe with initial values.
         df.loc[0, ['denoise', 'x_shift', 'y_shift', 'zoom', 'rotation']] = [denoising_strength,
                                                                             x_shift / fps,
@@ -308,12 +329,11 @@ class Script(scripts.Script):
                                                                             zoom_factor ** (1.0 / fps),
                                                                             rotation / fps]
 
-        # Preprocess the keyframe text block into a dictionary, indexed by frame, containing a list of commands (of tuple).
         keyframes = {}
         myprompts = []
         myseeds = []
 
-        #Prime seed
+        # Prime seed
         processing.fix_seed(p)
 
         for prompt in prompts.splitlines():
@@ -342,13 +362,13 @@ class Script(scripts.Script):
             elif tmpcommand == "prompt" and len(promptparts) == 4:
                 # Time (s) | prompt | Positive Prompts | Negative Prompts
                 myprompts.append((tmpframe, promptparts[2].strip().strip(",").strip(),
-                                            promptparts[3].strip().strip(",").strip()))
+                                  promptparts[3].strip().strip(",").strip()))
 
         # Sort list of prompts, and then populate the dataframe in a alternating fashion.
         # need to do this to ensure the prompts flow onto each other correctly.
         myprompts = sorted(myprompts)
 
-        #Special case if no prompts supplied.
+        # Special case if no prompts supplied.
         if len(myprompts) == 0:
             df.loc[0, ['pos1', 'neg1', 'pos2', 'neg2', 'prompt']] = ["", "", "", "", 1.0]
         for x in range(len(myprompts) - 1):
@@ -365,7 +385,7 @@ class Script(scripts.Script):
             # Seed commands given.
             myseeds = sorted(myseeds)
             if seed_march:
-                # Try interpolate fron seed -> subseed, by increasing subseed strength
+                # Try to interpolate from seed -> subseed, by increasing subseed strength
                 for x in range(len(myseeds) - 1):
                     df.loc[myseeds[x][0], ['seed_start', 'seed_end', 'seed_str']] = [str(myseeds[x][1]),
                                                                                      str(myseeds[x + 1][1]),
@@ -388,8 +408,8 @@ class Script(scripts.Script):
             df['seed_end'] = None
             df['seed_str'] = 0
 
-        print(df)
-        #Interpolate columns individually depending on how many data points.
+        # print(df)
+        # Interpolate columns individually depending on how many data points.
         for name, values in df.iteritems():
             if name in ['prompt', 'seed_str']:
                 df.loc[:, name] = df.loc[:, name].interpolate(limit_direction='both')
@@ -399,9 +419,9 @@ class Script(scripts.Script):
             else:
                 df.loc[:, name] = df.loc[:, name].interpolate(limit_direction='both')
 
-        #df = df.interpolate(limit_direction='both')
+        # df = df.interpolate(limit_direction='both')
         df.loc[:, ['pos1', 'neg1', 'pos2', 'neg2']] = df.loc[:, ['pos1', 'neg1', 'pos2', 'neg2']].ffill()
-        print(df)
+        # print(df)
 
         # Check if templates are filled in. If not, try grab prompts at top (i.e. image sent from png info)
         if len(tmpl_pos.strip()) == 0:
@@ -410,9 +430,9 @@ class Script(scripts.Script):
             tmpl_neg = p.negative_prompt
 
         df['pos_prompt'] = tmpl_pos + ", " + df['pos1'] + ":" + df['prompt'].map(str) + ' AND ' + tmpl_pos + ', ' + \
-                           df['pos2'] + ":" + (1.0-df['prompt']).map(str)
+                           df['pos2'] + ":" + (1.0 - df['prompt']).map(str)
         df['neg_prompt'] = tmpl_neg + ", " + df['neg1'] + ":" + df['prompt'].map(str) + ' AND ' + tmpl_neg + ', ' + \
-                           df['neg2'] + ":" + (1.0-df['prompt']).map(str)
+                           df['neg2'] + ":" + (1.0 - df['prompt']).map(str)
 
         csv_filename = os.path.join(outpath, f"{str(outfilename)}_frames.csv")
         df.to_csv(csv_filename)
@@ -428,7 +448,9 @@ class Script(scripts.Script):
             "Create WEBM": vid_webm,
             "Total Time (s)": totaltime,
             "FPS": fps,
-            "Initial Denoising Strength": denoising_strength,
+            "Seed March": seed_march,
+            "Smoothing Frames": smoothing,
+            "Initial De-noising Strength": denoising_strength,
             "Initial Zoom Factor": zoom_factor,
             "Initial X Pixel Shift": x_shift,
             "Initial Y Pixel Shift": y_shift,
@@ -453,7 +475,7 @@ class Script(scripts.Script):
         #    a = np.random.rand(p.width, p.height, 3) * 255
         #    p.init_images.append(Image.fromarray(a.astype('uint8')).convert('RGB'))
 
-        #Post Processing object dicts
+        # Post Processing object dicts
         text_blocks = {}
         props = {}
         stamps = {}
@@ -470,9 +492,10 @@ class Script(scripts.Script):
         last_keyframe_image = None
 
         # Make bat files before we start rendering video, so we could run them manually to preview output.
-        make_gif(outpath, outfilename, fps, False, True)
-        make_mp4(outpath, outfilename, fps, False, True)
-        make_webm(outpath, outfilename, fps, False, True)
+        # Smoothing = 1 means 1 extra frame, or double frame rate.
+        make_gif(outpath, outfilename, final_fps, False, True)
+        make_mp4(outpath, outfilename, final_fps, False, True)
+        make_webm(outpath, outfilename, final_fps, False, True)
 
         state.job_count = frame_count
 
@@ -480,6 +503,9 @@ class Script(scripts.Script):
 
         x_shift_cumulative = 0
         y_shift_cumulative = 0
+
+        last_frame = None
+        frame_save = 0
 
         # Iterate through range of frames
         for frame_no in range(frame_count):
@@ -541,15 +567,14 @@ class Script(scripts.Script):
                             stamps.pop(keyframe[1].strip())
 
                     elif keyframe_command == "set_text" and len(keyframe) == 10:
-                        # time_s | set_text | textblock_name | text_prompt | x | y | w | h | fore_color | back_color | font_name
+                        # time_s | set_text | name | text_prompt | x | y | w | h | fore_color | back_color | font_name
                         text_blocks[keyframe[1].strip()] = keyframe[1:]
                     elif keyframe_command == "clear_text" and len(keyframe) == 2:
                         # Time (s) | clear_text | textblock_name
                         if keyframe[1].strip() in text_blocks:
                             text_blocks.pop(keyframe[1].strip())
 
-
-            #Grab data from the dataframe and load it into the appropriate areas
+            # Grab data from the dataframe and load it into the appropriate areas
             x_shift_perframe = df.loc[frame_no, ['x_shift']][0]
             y_shift_perframe = df.loc[frame_no, ['y_shift']][0]
             rot_perframe = df.loc[frame_no, ['rotation']][0]
@@ -557,14 +582,16 @@ class Script(scripts.Script):
             p.denoising_strength = df.loc[frame_no, ['denoise']][0]
 
             p.prompt = str(df.loc[frame_no, ['pos_prompt']][0])
-            #print(p.prompt)
+            # print(p.prompt)
             p.negative_prompt = str(df.loc[frame_no, ['neg_prompt']][0])
-            #print(p.negative_prompt)
+            # print(p.negative_prompt)
 
             p.seed = int(df.loc[frame_no, ['seed_start']][0])
-            p.subseed = None if df.loc[frame_no, ['seed_end']][0] is None else int(df.loc[frame_no, ['seed_end']][0])
-            p.subseed_strength = None if df.loc[frame_no, ['seed_str']][0] is None else float(df.loc[frame_no, ['seed_str']][0])
-            #print(f"Frame:{frame_no} Seed:{p.seed} Sub:{p.subseed} Str:{p.subseed_strength}")
+            p.subseed = None \
+                if df.loc[frame_no, ['seed_end']][0] is None else int(df.loc[frame_no, ['seed_end']][0])
+            p.subseed_strength = None \
+                if df.loc[frame_no, ['seed_str']][0] is None else float(df.loc[frame_no, ['seed_str']][0])
+            # print(f"Frame:{frame_no} Seed:{p.seed} Sub:{p.subseed} Str:{p.subseed_strength}")
 
             # Extra processing parameters
             p.n_iter = 1
@@ -616,11 +643,25 @@ class Script(scripts.Script):
                 post_processed_image = rendertext(post_processed_image, text_blocks)
 
             # Save every seconds worth of frames to the output set displayed in UI
-            if frame_no % int(fps) == 0:
+            if seed_march:
+                if frame_no == 0 or p.subseed_strength == 0 or frame_no == frame_count:
+                    all_images.append(post_processed_image)
+            elif frame_no % int(fps) == 0:
                 all_images.append(post_processed_image)
 
-            # Save current image to folder manually, with specific name we can iterate over.
-            post_processed_image.save(os.path.join(outpath, f"{outfilename}_{frame_no:05}.png"))
+            # Save smoothed intermediate frames
+            if frame_no > 0 and smoothing > 0:
+                # working a frame behind, smooth from last_frame -> post_processed_image
+                for idx, img in enumerate(morph(last_frame, post_processed_image, smoothing)):
+                    img.save(os.path.join(outpath, f"{outfilename}_{frame_save:05}.png"))
+                    print(f"{frame_save:03}: {frame_no:03} > {idx} smooth frame")
+                    frame_save += 1
+            # save main frames
+            post_processed_image.save(os.path.join(outpath, f"{outfilename}_{frame_save:05}.png"))
+            print(f"{frame_save:03}: {frame_no:03} frame")
+            frame_save += 1
+
+            last_frame = post_processed_image.copy()
 
             post_processed_image = None  # Release this copy
             init_img = None
@@ -629,11 +670,10 @@ class Script(scripts.Script):
                 initial_seed = processed.seed
                 initial_info = processed.info
 
-
-        # If not interrupted, make requested movies. Otherwise the bat files exist.
-        make_gif(outpath, outfilename, fps, vid_gif & (not state.interrupted), False)
-        make_mp4(outpath, outfilename, fps, vid_mp4 & (not state.interrupted), False)
-        make_webm(outpath, outfilename, fps, vid_webm & (not state.interrupted), False)
+        # If not interrupted, make requested movies. Otherwise, the bat files exist.
+        make_gif(outpath, outfilename, final_fps, vid_gif & (not state.interrupted), False)
+        make_mp4(outpath, outfilename, final_fps, vid_mp4 & (not state.interrupted), False)
+        make_webm(outpath, outfilename, final_fps, vid_webm & (not state.interrupted), False)
 
         processed = Processed(p, all_images, initial_seed, initial_info)
 

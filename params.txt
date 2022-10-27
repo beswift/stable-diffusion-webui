@@ -1,0 +1,2 @@
+a photo of the unifeye-embed-v0 with diabetic retinopathy
+Steps: 78, Sampler: Euler a, CFG scale: 7, Seed: 3399532762, Size: 512x512, Model hash: a9263745, Model: v1-5-pruned, Hypernet: unifeye-v0
