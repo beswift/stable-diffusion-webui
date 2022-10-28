@@ -5,6 +5,12 @@ A browser interface based on Gradio library for Stable Diffusion.
 https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki - 
 with some "eye candy" added.***
 
+It should also be noted, this is purely for fun(***dus***)
+
+More interesting, research focused work in this realm:
+ - [The original](https://github.com/costapt/vess2ret) (or, at least the first paper I read)
+ - [A more recent paper](https://www.nature.com/articles/s41598-022-20698-3) Using styleGAN and going down the track of simulating pathology. :heart_eyes: ***super cool!***
+
 
 
 ![](browser_img.png)
@@ -24,7 +30,11 @@ Check the [custom scripts](https://github.com/AUTOMATIC1111/stable-diffusion-web
 It also contains a set of embeddings that allow you to generate ***somewhat*** realistic fundus images. 
 
 - Embeddings allow you to add objects that the network can recognize
-- Hypernetworks allow you to add the style representation of an image to image the model generates
+- Hypernetworks allow you to add the style representation of an image to an image the model generates
+
+Model checkpoints, including the trained hypernetworks can be found [here](https://drive.google.com/drive/folders/1i8ApDJ26kMy9n1EvWYsZvztRFE_tdICd?usp=sharing)
+Download and extract each folder to the working directory of this project.
+
 
 To quickly test out the currently trained embeddings and hypernetworks, using the x/y plot in the text2img or img2img tab:
 ![](img.png)

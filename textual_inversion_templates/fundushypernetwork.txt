@@ -1,13 +1,9 @@
-a photo of a [filewords]
-a rendering of a [filewords]
-a cropped photo of the [filewords]
-the photo of a [filewords]
-a dark photo of the [filewords]
-a photo of my [filewords]
-a photo of the cool [filewords]
-a close-up photo of a [filewords]
-a photo of the fundus that has [filewords]
-a photo of one fundus that has [filewords]
+a photo of [filewords] in the back of the eye
+a rendering of [filewords] in the back of the eye
+a cropped photo of [filewords] in the back of the eye
+an image of [filewords] in the back of the eye
+an image of the retina with [filewords]
+a photo of a that has [filewords]
 a close-up photo of the fundus with [filewords]
 a rendition of the fundus that has [filewords]
 a photo of the retina with [filewords]
