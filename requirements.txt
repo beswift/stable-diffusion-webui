@@ -26,3 +26,4 @@ torchdiffeq
 kornia
 lark
 inflection
+moviepy==1.0.3
