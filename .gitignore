@@ -26,15 +26,3 @@ notification.mp3
 
 .vscode
 
-
-/models/hypernetworks/
-/models/Deforum/
-/textual_inversion/2022-10-21/fundus/hypernetworks/
-/textual_inversion/2022-10-23/unifeye-v0/hypernetworks/
-/scripts/deforum-for-automatic1111-webui/
-/scripts/deforum-for-automatic1111-webui/
-/scripts/seed_travel/
-/scripts/shift-attention/
-/scripts/Stable-diffusion-webui-video/
-/scripts/StylePile/
-/scripts/Animator/
