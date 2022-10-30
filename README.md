@@ -1,10 +1,62 @@
-# Stable Diffusion web UI
-A browser interface based on Gradio library for Stable Diffusion.
+# Stable Diffusion web UI ***for UI***
+A browser interface based on Gradio library for Stable Diffusion.  
 
-![](txt2img_Screenshot.png)
+***This is a fork of the original webui project:
+https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki - 
+with some "eye candy" added.***
+
+It should also be noted, this is purely for fun(***dus***)
+
+More interesting, research focused work in this realm:
+ - [The original](https://github.com/costapt/vess2ret) (or, at least the first paper I read)
+ - [A more recent paper](https://www.nature.com/articles/s41598-022-20698-3) Using styleGAN and going down the track of simulating pathology. :heart_eyes: ***super cool!***
+
+
+
+![](browser_img.png)
+
+
+
+This repository already contains versions of the following custom scripts:
+  - [Animator](https://github.com/Animator-Anon/Animator) - simple frame animator
+  - [Deforum](https://github.com/deforum-art/deforum-for-automatic1111-webui) - for complex videos
+  - [Seed Travel](https://github.com/yownas/seed_travel) - Create a series of images with shifting seeds
+  - [Shift Attention](https://github.com/yownas/shift-attention) - Create a series of images that shift the main focus of the image to different prompts
+  - [Stable-Diffusion-webui-video](https://github.com/memes-forever/Stable-diffusion-webui-video/) - Create a video from a series of images
+  - [StylePile](https://github.com/some9000/StylePile) - Create a series of images with different styles
 
 Check the [custom scripts](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Custom-Scripts) wiki page for extra scripts developed by users.
 
+It also contains a set of embeddings that allow you to generate ***somewhat*** realistic fundus images. 
+
+- Embeddings allow you to add objects that the network can recognize
+- Hypernetworks allow you to add the style representation of an image to an image the model generates
+
+Model checkpoints, including the trained hypernetworks can be found [here](https://drive.google.com/drive/folders/1i8ApDJ26kMy9n1EvWYsZvztRFE_tdICd?usp=sharing)
+Download and extract each folder to the working directory of this project.
+
+
+To quickly test out the currently trained embeddings and hypernetworks, using the x/y plot in the text2img or img2img tab:
+![](img.png)
+
+- X Type: 'Prompt S/R'
+  ```
+  fundus, eye_embed_3,fundus_drusen_embed,fundus_embed_2,unifeye-embed-v0
+  ```
+- Y Type: 'Hypernetwork'
+  ```
+  none, eye_hn_3, fundus, fundus_dr_hn_do, fundus_hn_2, fundusHN,  unifeye-lin-v0,unifeye-v0
+  ```
+Then use a prompt like:
+```
+a photo of the fundus with diabetic retinopathy
+```
+The 'fundus' prompt is the most important, the rest are optional. - fundus is a keyword that triggers the fundus embedding to be used (and that embedding will get replaced with the other options seperated by ',' in the prompt S/R field)
+
+The 'none' hypernetwork is the default, and will be used if you don't specify a hypernetwork in the prompt. The other hypernetworks are optional, and will be used if you specify them in the prompt.
+
+The promps above should yeild a matrix like this:
+![](evaluation.png)
 ## Features
 [Detailed feature showcase with images](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features):
 - Original txt2img and img2img modes
@@ -86,24 +138,19 @@ Check the [custom scripts](https://github.com/AUTOMATIC1111/stable-diffusion-web
 - via extension: [Aesthetic Gradients](https://github.com/AUTOMATIC1111/stable-diffusion-webui-aesthetic-gradients), a way to generate images with a specific aesthetic by using clip images embds (implementation of [https://github.com/vicgalle/stable-diffusion-aesthetic-gradients](https://github.com/vicgalle/stable-diffusion-aesthetic-gradients))
 
 ## Where are Aesthetic Gradients?!?!
-Aesthetic Gradients are now an extension. You can install it using git:
+Aesthetic Gradients are now an extension. They are pre-installed in this repo
+You can learn more about them [here](https://github.com/AUTOMATIC1111/stable-diffusion-webui-aesthetic-gradients)
 
-```commandline
-git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui-aesthetic-gradients extensions/aesthetic-gradients
-```
 
-After running this command, make sure that you have `aesthetic-gradients` dir in webui's `extensions` directory and restart
-the UI. The interface for Aesthetic Gradients should appear exactly the same as it was.
+
 
 ## Where is History/Image browser?!?!
-Image browser is now an extension. You can install it using git:
+Image browser is now an extension. It is pre-installed in this repo
 
-```commandline
-git clone https://github.com/yfszzx/stable-diffusion-webui-images-browser extensions/images-browser
-```
 
-After running this command, make sure that you have `images-browser` dir in webui's `extensions` directory and restart
-the UI. The interface for Image browser should appear exactly the same as it was.
+learn more [here](https://github.com/yfszzx/stable-diffusion-webui-images-browser)
+
+
 
 ## Installation and Running
 Make sure the required [dependencies](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Dependencies) are met and follow the instructions available for both [NVidia](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Install-and-Run-on-NVidia-GPUs) (recommended) and [AMD](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Install-and-Run-on-AMD-GPUs) GPUs.
