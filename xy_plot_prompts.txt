@@ -1,0 +1,13 @@
+X(prompt S/R):
+fundus, none,fundus_embed_2, druz_embed,drus-1-24
+
+Ben_Swift, Ben_Swift_embed, druz_embed, fundus_drusen_embed, fundus_embed_2
+
+Y(hypernet):
+none, fundus, fundus_hn_2, druz_hn
+
+none, druz_hn,fundusHn,eye_hn_3,fundus_dr_hn_do,fundus_hn_2,unifeye-lin-v0
+
+
+Samplers:
+Euler a, Euler, LMS, Heun, DPM2, DPM2 a, DPM fast, DPM adaptive, LMS Karras, DPM2 Karras, DDIM
