@@ -679,5 +679,7 @@
     "customscript/animation_v5.py/img2img/Folder:/value": "",
     "customscript/animation_v5.py/img2img/Keyframes:/value": "",
     "customscript/prompts_from_file.py/img2img/Iterate seed every line/value": false,
-    "customscript/prompts_from_file.py/img2img/List of prompt inputs/value": ""
+    "customscript/prompts_from_file.py/img2img/List of prompt inputs/value": "",
+    "extras/Upscale Before Restoring Faces/visible": true,
+    "extras/Upscale Before Restoring Faces/value": false
 }
