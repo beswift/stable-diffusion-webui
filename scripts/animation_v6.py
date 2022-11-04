@@ -1,4 +1,3 @@
-
 #
 # Animation Script v6.0
 # Inspired by Deforum Notebook

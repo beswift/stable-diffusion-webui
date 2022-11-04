@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-import hashlib
+import stat
 import gradio as gr
 import modules.extras
 import modules.ui
@@ -9,9 +9,10 @@ from modules.shared import opts, cmd_opts
 from modules import shared, scripts
 from modules import script_callbacks
 from pathlib import Path
+from typing import List, Tuple
 
-faverate_tab_name = "favorites"
-tabs_list = ["txt2img", "img2img", "extras", faverate_tab_name, "others"]
+faverate_tab_name = "Favorites"
+tabs_list = ["txt2img", "img2img", "Extras", faverate_tab_name, "Others"]
 num_of_imgs_per_page = 0
 loads_files_num = 0
 path_recorder_filename = os.path.join(scripts.basedir(), "path_recorder.txt")
@@ -44,7 +45,9 @@ def reduplicative_file_move(src, dst):
 def save_image(file_name):
     if file_name is not None and os.path.exists(file_name):
         reduplicative_file_move(file_name, opts.outdir_save)
-        return "<div style='color:#999'>Added to faverites</div>"
+        return "<div style='color:#999'>Moved to favorites</div>"
+    else:
+        return "<div style='color:#999'>Image not found (may have been already moved)</div>"
 
 def delete_image(delete_num, name, filenames, image_index, visible_num):
     if name == "":
@@ -70,40 +73,34 @@ def delete_image(delete_num, name, filenames, image_index, visible_num):
                     if os.path.exists(txt_file):
                         os.remove(txt_file)
                 else:
-                    print(f"Not exists file {name}")
+                    print(f"File does not exist {name}")
             else:
                 new_file_list.append(name)
             i += 1
     return new_file_list, 1, visible_num
 
-def traverse_all_files(curr_path, image_list):
-    try:
-        f_list = os.listdir(curr_path)
-    except:
-        if os.path.splitext(curr_path)[1] in image_ext_list:
-            image_list.append(curr_path)
-        return image_list
-    for file in f_list:
-        file = os.path.join(curr_path, file)
-        if os.path.isfile(file) and os.path.splitext(file)[1] in image_ext_list:
-            image_list.append(file)
-        else:
-            image_list = traverse_all_files(file, image_list)
+def traverse_all_files(curr_path, image_list) -> List[Tuple[str, os.stat_result]]:
+    f_list = [(os.path.join(curr_path, entry.name), entry.stat()) for entry in os.scandir(curr_path)]
+    for f_info in f_list:
+        fname, fstat = f_info
+        if os.path.splitext(fname)[1] in image_ext_list:
+            image_list.append(f_info)
+        elif stat.S_ISDIR(fstat.st_mode):
+            image_list = traverse_all_files(fname, image_list)
     return image_list
 
-def get_all_images(dir_name, sort_by, keyword):    
-    filenames = []   
-    filenames = traverse_all_files(dir_name, filenames)  
+
+def get_all_images(dir_name, sort_by, keyword):
+    fileinfos = traverse_all_files(dir_name, [])
     keyword = keyword.strip(" ")
-    if len(keyword) != 0:        
-        filenames = [x for x in filenames if keyword in x]
-    total_num = len(filenames) 
+    if len(keyword) != 0:
+        fileinfos = [x for x in fileinfos if keyword.lower() in x[0].lower()]
     if sort_by == "date":
-        filenames = [(os.path.getmtime(file), file) for file in filenames ]
-        sort_array = sorted(filenames, key=lambda x:-x[0])
-        filenames = [x[1] for x in sort_array]
+        fileinfos = sorted(fileinfos, key=lambda x: -x[1].st_mtime)
     elif sort_by == "path name":
-        sort_array = sorted(filenames)        
+        fileinfos = sorted(fileinfos)
+
+    filenames = [finfo[0] for finfo in fileinfos]
     return filenames
 
 def get_image_page(img_path, page_index, filenames, keyword, sort_by):
@@ -149,7 +146,7 @@ def change_dir(img_dir, path_recorder, load_switch, img_path_history):
                 except:
                     warning = f"'{img_dir} is not a directory"
             else:
-                warning = "The directory is not exist"
+                warning = "The directory does not exist"
         except:
             warning = "The format of the directory is incorrect"   
 
@@ -172,7 +169,7 @@ def create_tab(tabname):
         dir_name = opts.outdir_txt2img_samples
     elif tabname == "img2img":
         dir_name = opts.outdir_img2img_samples
-    elif tabname == "extras":
+    elif tabname == "Extras":
         dir_name = opts.outdir_extras_samples
     elif tabname == faverate_tab_name:
         dir_name = opts.outdir_save
@@ -224,7 +221,7 @@ def create_tab(tabname):
                             img_file_time= gr.HTML()
                     with gr.Row(elem_id=tabname + "_images_history_button_panel") as button_panel:
                         if tabname != faverate_tab_name:
-                            save_btn = gr.Button('Collect')
+                            save_btn = gr.Button('Move to favorites')
                         try:
                             send_to_buttons = modules.generation_parameters_copypaste.create_buttons(["txt2img", "img2img", "inpaint", "extras"])
                         except:
