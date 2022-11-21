@@ -4,6 +4,7 @@
 #
 # Give a prompt like: "photo of (cat:1~0) or (dog:0~1)"
 # Generates a sequence of images, lowering the weight of "cat" from 1 to 0 and increasing the weight of "dog" from 0 to 1.
+# Will also support multiple numbers. "(cat:1~0~1)" will go from cat:1 to cat:0 to cat:1 streched over the number of steps
 
 import os
 import re
@@ -50,14 +51,16 @@ class Script(scripts.Script):
         return result + 1
 
     def run(self, p, steps, save_video, video_fps, show_images):
-        re_attention_span = re.compile(r"([.\d]+)~([.\d]+)", re.X)
+        re_attention_span = re.compile(r"([\-.\d]+~[\-~.\d]+)", re.X)
 
         def shift_attention(text, distance):
 
             def inject_value(distance, match_obj):
-                start_weight = float(match_obj.group(1))
-                end_weight = float(match_obj.group(2))
-                return str(start_weight + (end_weight - start_weight) * distance)
+                a = match_obj.group(1).split('~')
+                l = len(a) - 1
+                q1 = int(math.floor(distance*l))
+                q2 = int(math.ceil(distance*l))
+                return str( float(a[q1]) + ((float(a[q2]) - float(a[q1])) * (distance * l - q1)) )
 
             res = re.sub(re_attention_span, lambda match_obj: inject_value(distance, match_obj), text)
             return res
@@ -77,16 +80,20 @@ class Script(scripts.Script):
                 print(f"moviepy python module not installed. Will not be able to generate video.")
                 return Processed(p, images, p.seed)
 
-        # Custom seed travel saving
+        # Custom folder for saving images/animations
         shift_path = os.path.join(p.outpath_samples, "shift")
         os.makedirs(shift_path, exist_ok=True)
         shift_number = Script.get_next_sequence_number(shift_path)
         shift_path = os.path.join(shift_path, f"{shift_number:05}")
         p.outpath_samples = shift_path
+        if save_video: os.makedirs(shift_path, exist_ok=True)
 
         # Force Batch Count and Batch Size to 1.
         p.n_iter = 1
         p.batch_size = 1
+
+        # Make sure seed is fixed
+        fix_seed(p)
 
         total_images = int(steps)
         print(f"Generating {total_images} images.")
@@ -95,12 +102,14 @@ class Script(scripts.Script):
         state.job_count = total_images
 
         initial_prompt = p.prompt
+        initial_negative_prompt = p.negative_prompt
 
         for i in range(int(steps) + 1):
             if state.interrupted:
                 break
 
             p.prompt = shift_attention(initial_prompt, float(i / int(steps)))
+            p.negative_prompt = shift_attention(initial_negative_prompt, float(i / int(steps)))
 
             proc = process_images(p)
             if initial_info is None:
