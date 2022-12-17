@@ -1,0 +1,2 @@
+A right eye druz_embed image from an Optos with drusen:
+Steps: 55, Sampler: DPM2 a Karras, CFG scale: 13, Seed: 1570422271, Size: 512x512, Model hash: a9263745, Model: v1-5-pruned, Hypernet: unifeye-v0, Denoising strength: 0.7, First pass size: 0x0
