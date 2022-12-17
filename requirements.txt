@@ -1,10 +1,10 @@
+accelerate
 basicsr
-diffusers
 fairscale==0.4.4
 fonts
 font-roboto
 gfpgan
-gradio==3.8
+gradio==3.9
 invisible-watermark
 numpy
 omegaconf
@@ -30,4 +30,10 @@ inflection
 moviepy==1.0.3
 
 GitPython
+
+
+
+torchsde
+safetensors
+psutil; sys_platform == 'darwin'
 

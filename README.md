@@ -122,7 +122,7 @@ The promps above should yeild a matrix like this:
      - separate prompts using uppercase `AND`
      - also supports weights for prompts: `a cat :1.2 AND a dog AND a penguin :2.2`
 - No token limit for prompts (original stable diffusion lets you use up to 75 tokens)
-- DeepDanbooru integration, creates danbooru style tags for anime prompts (add --deepdanbooru to commandline args)
+- DeepDanbooru integration, creates danbooru style tags for anime prompts
 - [xformers](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Xformers), major speed increase for select cards: (add --xformers to commandline args)
 - via extension: [History tab](https://github.com/yfszzx/stable-diffusion-webui-images-browser): view, direct and delete images conveniently within the UI
 - Generate forever option
@@ -137,6 +137,7 @@ The promps above should yeild a matrix like this:
 - Support for dedicated [inpainting model](https://github.com/runwayml/stable-diffusion#inpainting-with-stable-diffusion) by RunwayML. 
 - via extension: [Aesthetic Gradients](https://github.com/AUTOMATIC1111/stable-diffusion-webui-aesthetic-gradients), a way to generate images with a specific aesthetic by using clip images embds (implementation of [https://github.com/vicgalle/stable-diffusion-aesthetic-gradients](https://github.com/vicgalle/stable-diffusion-aesthetic-gradients))
 
+
 ## Where are Aesthetic Gradients?!?!
 Aesthetic Gradients are now an extension. They are pre-installed in this repo
 You can learn more about them [here](https://github.com/AUTOMATIC1111/stable-diffusion-webui-aesthetic-gradients)
@@ -150,6 +151,8 @@ Image browser is now an extension. It is pre-installed in this repo
 
 learn more [here](https://github.com/yfszzx/stable-diffusion-webui-images-browser)
 
+
+- [Stable Diffusion 2.0](https://github.com/Stability-AI/stablediffusion) support - see [wiki](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#stable-diffusion-20) for instructions
 
 
 ## Installation and Running
@@ -201,6 +204,7 @@ The documentation was moved from this README over to the project's [wiki](https:
 - SwinIR - https://github.com/JingyunLiang/SwinIR
 - Swin2SR - https://github.com/mv-lab/swin2sr
 - LDSR - https://github.com/Hafiidz/latent-diffusion
+- MiDaS - https://github.com/isl-org/MiDaS
 - Ideas for optimizations - https://github.com/basujindal/stable-diffusion
 - Cross Attention layer optimization - Doggettx - https://github.com/Doggettx/stable-diffusion, original idea for prompt editing.
 - Cross Attention layer optimization - InvokeAI, lstein - https://github.com/invoke-ai/InvokeAI (originally http://github.com/lstein/stable-diffusion)
