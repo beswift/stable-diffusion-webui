@@ -21,6 +21,8 @@ import json
 import cv2
 import glob
 import shutil
+import piexif
+import piexif.helper
 
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 
@@ -40,6 +42,46 @@ def zoom_at2(img, rot, x, y, zoom):
     resimg.paste(img2.rotate(rot), (int((w - img2.size[0]) / 2 + x), int((h - img2.size[1]) / 2 + y)))
 
     return resimg
+
+
+def get_pnginfo(filepath):
+
+    image = Image.open(filepath, "r")
+    worked = False
+
+    if image is None:
+        return worked, '', 'Error: No image supplied'
+
+    items = image.info
+    geninfo = ''
+
+    if "exif" in image.info:
+        exif = piexif.load(image.info["exif"])
+        exif_comment = (exif or {}).get("Exif", {}).get(piexif.ExifIFD.UserComment, b'')
+        try:
+            exif_comment = piexif.helper.UserComment.load(exif_comment)
+        except ValueError:
+            exif_comment = exif_comment.decode('utf8', errors="ignore")
+
+        items['exif comment'] = exif_comment
+        geninfo = exif_comment
+
+        for field in ['jfif', 'jfif_version', 'jfif_unit', 'jfif_density', 'dpi', 'exif',
+                      'loop', 'background', 'timestamp', 'duration']:
+            items.pop(field, None)
+
+    geninfo = items.get('parameters', geninfo)
+
+    info = ''
+    for key, text in items.items():
+        info += f"{str(key).strip()}:{str(text).strip()}".strip()+"\n"
+
+    if len(info) == 0:
+        info = "Error: Nothing found in the image."
+    else:
+        worked = True
+
+    return worked, geninfo, info
 
 
 def pasteprop(img, props, propfolder):
@@ -274,6 +316,7 @@ class Script(scripts.Script):
             "time_s | source | video, images, img2img | path<br>"
             "time_s | prompt | positive_prompts | negative_prompts<br>"
             "time_s | template | positive_prompts | negative_prompts<br>"
+            "time_s | prompt_from_png | file_path<br>"
             "time_s | transform | zoom | x_shift | y_shift | rotation<br>"
             "time_s | seed | new_seed_int<br>"
             "time_s | noise | added_noise_strength<br>"            
@@ -391,6 +434,21 @@ class Script(scripts.Script):
                 # Time (s) | template | Positive Prompts | Negative Prompts
                 tmpl_pos = key_frame_parts[2].strip().strip(",").strip()
                 tmpl_neg = key_frame_parts[3].strip().strip(",").strip()
+            elif tmp_command == "prompt_from_png" and len(key_frame_parts) == 3:
+                # Time (s) | prompt_from_png | file name
+                foundinfo, geninfo, info = get_pnginfo(key_frame_parts[2].strip().strip(",").strip())
+                if foundinfo:
+                    if "\nNegative prompt:" in geninfo:
+                        tmp_posprompt = geninfo[:geninfo.find("\nNegative prompt:")]
+                        tmp_negprompt = geninfo[geninfo.find("\nNegative prompt:")+18:geninfo.rfind("\nSteps:")]
+                    else:
+                        tmp_posprompt = geninfo[:geninfo.find("\nSteps:")]
+                        tmp_negprompt = ''
+                    tmp_params = geninfo[geninfo.rfind("\nSteps:")+1:]
+                    tmp_seed = int(tmp_params[tmp_params.find('Seed: ') + 6: tmp_params.find(",", tmp_params.find('Seed: ') + 6)])
+                    my_prompts.append((tmp_frame_no, tmp_posprompt, tmp_negprompt))
+                    my_seeds.append((tmp_frame_no, tmp_seed))
+                    # print(f"Pos:[{tmp_posprompt}] Neg:[{tmp_negprompt}] Seed:[{tmp_seed}]")
             elif tmp_command == "source" and len(key_frame_parts) > 2 and is_img2img:
                 # time_s | source | source_name | path
                 tmp_source_name = key_frame_parts[2].lower().strip()
@@ -560,7 +618,7 @@ class Script(scripts.Script):
                 break
 
             # Check if keyframes exists for this frame
-            print("process keyframes")
+            # print("process keyframes")
             if frame_no in keyframes:
                 # Keyframes exist for this frame.
                 print(f"\r\nKeyframe at {frame_no}: {keyframes[frame_no]}\r\n")
@@ -615,7 +673,7 @@ class Script(scripts.Script):
                         if keyframe[1].strip() in text_blocks:
                             text_blocks.pop(keyframe[1].strip())
 
-            print("set processing options")
+            # print("set processing options")
             p.prompt = str(df.loc[frame_no, ['pos_prompt']][0])
             # print(p.prompt)
             p.negative_prompt = str(df.loc[frame_no, ['neg_prompt']][0])
@@ -638,7 +696,7 @@ class Script(scripts.Script):
             #
             # Get source frame
             #
-            print("get source frame")
+            # print("get source frame")
             if source == 'img2img' and is_img2img:
                 # Extra processing parameters
                 if apply_colour_corrections:
@@ -662,7 +720,7 @@ class Script(scripts.Script):
             elif source == 'video' and is_img2img:
                 source_cap.set(1, frame_no)
                 ret, tmp_array = source_cap.read()
-                init_img = Image.fromarray(tmp_array.astype('uint8'), 'RGB')
+                init_img = Image.fromarray(cv2.cvtColor(tmp_array, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
 
             elif source == 'images' and is_img2img:
                 if frame_no >= len(source_cap):
@@ -676,7 +734,7 @@ class Script(scripts.Script):
             #
             # Pre-process source frame
             #
-            print("pre process frame")
+            # print("pre process frame")
             if init_img is not None:
                 # Update transform details
                 x_shift_per_frame = df.loc[frame_no, ['x_shift']][0]
@@ -706,12 +764,12 @@ class Script(scripts.Script):
                     # print("Adding Noise!!")
                     init_img = addnoise(init_img, df.loc[frame_no, ['noise']][0])
 
-                print("processing frame now.")
+                # print("processing frame now.")
                 state.job = f"Major frame {frame_no} of {frame_count}"
                 p.init_images = [init_img]
 
             # Debug, print out source frame
-            # init_img.save(os.path.join(output_path, f"{output_filename}_{frame_save:05}_initial.png"))
+            #init_img.save(os.path.join(output_path, f"{output_filename}_{frame_save:05}_initial.png"))
 
             #
             # Process source frame into destination frame
@@ -722,7 +780,7 @@ class Script(scripts.Script):
             #
             # Post-process destination frame
             #
-            print("post process")
+            # print("post process")
             post_processed_image = processed.images[0].copy()
             if len(stamps) > 0:
                 post_processed_image = pasteprop(post_processed_image, stamps, propfolder)
@@ -733,7 +791,7 @@ class Script(scripts.Script):
             # Save frame
             #
             # Save every seconds worth of frames to the output set displayed in UI
-            print("save frame")
+            # print("save frame")
             if seed_march:
                 if frame_no == 0 or p.subseed_strength == 0 or frame_no == frame_count:
                     all_images.append(post_processed_image)
@@ -750,7 +808,7 @@ class Script(scripts.Script):
 
             # save main frames
             post_processed_image.save(os.path.join(output_path, f"{output_filename}_{frame_save:05}.png"))
-            print(f"{frame_save:03}: {frame_no:03} frame")
+            # print(f"{frame_save:03}: {frame_no:03} frame")
             frame_save += 1
 
             last_frame = post_processed_image.copy()
@@ -759,7 +817,7 @@ class Script(scripts.Script):
             if initial_seed is None:
                 initial_seed = processed.seed
                 initial_info = processed.info
-            print("end of loop")
+            # print("end of loop")
 
         # If not interrupted, make requested movies. Otherwise, the bat files exist.
         make_gif(output_path, output_filename, final_fps, vid_gif & (not state.interrupted), False)
