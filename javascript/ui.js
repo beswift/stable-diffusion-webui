@@ -1,4 +1,4 @@
-// various functions for interation with ui.py not large enough to warrant putting them in separate files
+// various functions for interaction with ui.py not large enough to warrant putting them in separate files
 
 function set_theme(theme){
     gradioURL = window.location.href
@@ -19,7 +19,7 @@ function selected_gallery_index(){
 
 function extract_image_from_gallery(gallery){
     if(gallery.length == 1){
-        return gallery[0]
+        return [gallery[0]]
     }
 
     index = selected_gallery_index()
@@ -28,7 +28,7 @@ function extract_image_from_gallery(gallery){
         return [null]
     }
 
-    return gallery[index];
+    return [gallery[index]];
 }
 
 function args_to_array(args){
@@ -45,16 +45,33 @@ function switch_to_txt2img(){
     return args_to_array(arguments);
 }
 
-function switch_to_img2img(){
+function switch_to_img2img_tab(no){
     gradioApp().querySelector('#tabs').querySelectorAll('button')[1].click();
-    gradioApp().getElementById('mode_img2img').querySelectorAll('button')[0].click();
+    gradioApp().getElementById('mode_img2img').querySelectorAll('button')[no].click();
+}
+function switch_to_img2img(){
+    switch_to_img2img_tab(0);
+    return args_to_array(arguments);
+}
 
+function switch_to_sketch(){
+    switch_to_img2img_tab(1);
+    return args_to_array(arguments);
+}
+
+function switch_to_inpaint(){
+    switch_to_img2img_tab(2);
+    return args_to_array(arguments);
+}
+
+function switch_to_inpaint_sketch(){
+    switch_to_img2img_tab(3);
     return args_to_array(arguments);
 }
 
 function switch_to_inpaint(){
     gradioApp().querySelector('#tabs').querySelectorAll('button')[1].click();
-    gradioApp().getElementById('mode_img2img').querySelectorAll('button')[1].click();
+    gradioApp().getElementById('mode_img2img').querySelectorAll('button')[2].click();
 
     return args_to_array(arguments);
 }
@@ -109,18 +126,41 @@ function create_submit_args(args){
     return res
 }
 
-function submit(){
-    requestProgress('txt2img')
+function showSubmitButtons(tabname, show){
+    gradioApp().getElementById(tabname+'_interrupt').style.display = show ? "none" : "block"
+    gradioApp().getElementById(tabname+'_skip').style.display = show ? "none" : "block"
+}
 
-    return create_submit_args(arguments)
+function submit(){
+    rememberGallerySelection('txt2img_gallery')
+    showSubmitButtons('txt2img', false)
+
+    var id = randomId()
+    requestProgress(id, gradioApp().getElementById('txt2img_gallery_container'), gradioApp().getElementById('txt2img_gallery'), function(){
+        showSubmitButtons('txt2img', true)
+
+    })
+
+    var res = create_submit_args(arguments)
+
+    res[0] = id
+
+    return res
 }
 
 function submit_img2img(){
-    requestProgress('img2img')
+    rememberGallerySelection('img2img_gallery')
+    showSubmitButtons('img2img', false)
 
-    res = create_submit_args(arguments)
+    var id = randomId()
+    requestProgress(id, gradioApp().getElementById('img2img_gallery_container'), gradioApp().getElementById('img2img_gallery'), function(){
+        showSubmitButtons('img2img', true)
+    })
 
-    res[0] = get_tab_index('mode_img2img')
+    var res = create_submit_args(arguments)
+
+    res[0] = id
+    res[1] = get_tab_index('mode_img2img')
 
     return res
 }
@@ -143,14 +183,6 @@ function confirm_clear_prompt(prompt, negative_prompt) {
 
 
 opts = {}
-function apply_settings(jsdata){
-    console.log(jsdata)
-
-    opts = JSON.parse(jsdata)
-
-    return jsdata
-}
-
 onUiUpdate(function(){
 	if(Object.keys(opts).length != 0) return;
 
@@ -160,7 +192,7 @@ onUiUpdate(function(){
     textarea = json_elem.querySelector('textarea')
     jsdata = textarea.value
     opts = JSON.parse(jsdata)
-
+    executeCallbacks(optionsChangedCallbacks);
 
     Object.defineProperty(textarea, 'value', {
         set: function(newValue) {
@@ -171,6 +203,8 @@ onUiUpdate(function(){
             if (oldValue != newValue) {
                 opts = JSON.parse(textarea.value)
             }
+
+            executeCallbacks(optionsChangedCallbacks);
         },
         get: function() {
             var valueProp = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
@@ -187,6 +221,30 @@ onUiUpdate(function(){
 	if (!img2img_textarea) {
 		img2img_textarea = gradioApp().querySelector("#img2img_prompt > label > textarea");
 		img2img_textarea?.addEventListener("input", () => update_token_counter("img2img_token_button"));
+	}
+
+    show_all_pages = gradioApp().getElementById('settings_show_all_pages')
+    settings_tabs = gradioApp().querySelector('#settings div')
+    if(show_all_pages && settings_tabs){
+        settings_tabs.appendChild(show_all_pages)
+        show_all_pages.onclick = function(){
+            gradioApp().querySelectorAll('#settings > div').forEach(function(elem){
+                elem.style.display = "block";
+            })
+        }
+    }
+})
+
+
+onOptionsChanged(function(){
+    elem = gradioApp().getElementById('sd_checkpoint_hash')
+    sd_checkpoint_hash = opts.sd_checkpoint_hash || ""
+    shorthash = sd_checkpoint_hash.substr(0,10)
+
+	if(elem && elem.textContent != shorthash){
+	    elem.textContent = shorthash
+	    elem.title = sd_checkpoint_hash
+	    elem.href = "https://google.com/search?q=" + sd_checkpoint_hash
 	}
 })
 

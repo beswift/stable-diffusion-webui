@@ -29,3 +29,7 @@ notification.mp3
 
 /textual_inversion/2022-10-21/fundus/hypernetworks/
 /textual_inversion/
+/extensions
+/test/stdout.txt
+/test/stderr.txt
+/cache.json
