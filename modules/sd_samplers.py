@@ -351,6 +351,8 @@ class CFGDenoiser(torch.nn.Module):
 
             x_out[-uncond.shape[0]:] = self.inner_model(x_in[-uncond.shape[0]:], sigma_in[-uncond.shape[0]:], cond={"c_crossattn": [uncond], "c_concat": [image_cond_in[-uncond.shape[0]:]]})
 
+        devices.test_for_nans(x_out, "unet")
+
         if opts.live_preview_content == "Prompt":
             store_latent(x_out[0:uncond.shape[0]])
         elif opts.live_preview_content == "Negative prompt":
@@ -452,7 +454,7 @@ class KDiffusionSampler:
     def initialize(self, p):
         self.model_wrap_cfg.mask = p.mask if hasattr(p, 'mask') else None
         self.model_wrap_cfg.nmask = p.nmask if hasattr(p, 'nmask') else None
-        self.model_wrap.step = 0
+        self.model_wrap_cfg.step = 0
         self.eta = p.eta or opts.eta_ancestral
 
         k_diffusion.sampling.torch = TorchHijack(self.sampler_noises if self.sampler_noises is not None else [])
