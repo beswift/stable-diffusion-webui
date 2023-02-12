@@ -31,7 +31,7 @@ moviepy==1.0.3
 
 GitPython
 
-
+fastapi==0.90.1
 
 torchsde
 safetensors

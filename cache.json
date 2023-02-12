@@ -3,6 +3,14 @@
         "checkpoint/v1-5-pruned.ckpt": {
             "mtime": 1666552624.6071892,
             "sha256": "e1441589a6f3c5a53f5f54d0975a18a7feb7cdf0b0dee276dfc3331ae376a053"
+        },
+        "checkpoint/uberrealisticDreamy_uberrealisticdreamyp.safetensors": {
+            "mtime": 1673855706.8544674,
+            "sha256": "df9d99e0356f4d7ef649c343f6382e0ee295cdb9f0c8e1c0d94d477f7ed55f4b"
+        },
+        "checkpoint/deliberate_v11.safetensors": {
+            "mtime": 1674710407.7030365,
+            "sha256": "d8691b4d16fb59aea959db797350016e24008d59de8d5a960ff7b1cec1fbc11c"
         }
     }
 }
